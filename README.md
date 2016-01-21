@@ -2,7 +2,7 @@
 - 이 프로젝트는 Unofficial Google Music API를 VB.NET 으로 코딩한 프로젝트입니다.
 - 이 프로젝트는 Simon-Weber 님의 gmusicapi: an unofficial API for Google Play Music [https://github.com/simon-weber/gmusicapi] 를 참조하였습니다.
 
-==================================================================================================
+### Feature
 
 - 이 프로젝트는 Google OAuth 2.0 을 위해 Google에서 제공한 Nuget Package를 사용하고 있습니다.
   o/oauth2/programmatic_auth 를 이용해 자동 인증을 진행할 수 있습니다.
