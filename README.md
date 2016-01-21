@@ -14,39 +14,39 @@
 
 - 이 프로젝트는 WebClient를 이용하며, 다음과 같은 기능을 지원합니다.
  - AddTrack
- > AddTracks
- > AddPlaylist
- > AddPlaylistContent
- > AddPlaylistContents // 미완성 //
- > DeleteTrack
- > DeleteTracks
- > DeletePlaylist
- > DeletePlaylistContent
- > DeletePlaylistContents
- > EditTrack
- > EditTracks
- > EditPlaylist
- > FindTracks
- > FindPlaylists
- > GetAllTracks
- > GetAllPlaylists
- > GetPlaylistContents
- > GetAutoPlaylistContents
- > GetDeletedTracks
- > GetPermanentlyDeletedTracks
- > GetRandomTracks // 미완성 //
- > GetSuggestedMetadata
- > GetStreamingUrl
- > GetDownloadUrl
- > GetRegisteredDevices
- > GetAllSettings
- > RestoreDeletedTrack
- > RestoreDeletedTracks
- > RestorePermanentlyDeletedTrack
- > RestorePermanentlyDeletedTracks
- > SearchStoreTracks
- > SearchPlaylists
- > UploadAlbumArt
+ - AddTracks
+ - AddPlaylist
+ - AddPlaylistContent
+ - AddPlaylistContents // 미완성 //
+ - DeleteTrack
+ - DeleteTracks
+ - DeletePlaylist
+ - DeletePlaylistContent
+ - DeletePlaylistContents
+ - EditTrack
+ - EditTracks
+ - EditPlaylist
+ - FindTracks
+ - FindPlaylists
+ - GetAllTracks
+ - GetAllPlaylists
+ - GetPlaylistContents
+ - GetAutoPlaylistContents
+ - GetDeletedTracks
+ - GetPermanentlyDeletedTracks
+ - GetRandomTracks // 미완성 //
+ - GetSuggestedMetadata
+ - GetStreamingUrl
+ - GetDownloadUrl
+ - GetRegisteredDevices
+ - GetAllSettings
+ - RestoreDeletedTrack
+ - RestoreDeletedTracks
+ - RestorePermanentlyDeletedTrack
+ - RestorePermanentlyDeletedTracks
+ - SearchStoreTracks
+ - SearchPlaylists
+ - UploadAlbumArt
  
 ### TODO
 - AddPlaylistContentsRequest 에 필요한 JSON name 값을 찾고, 업데이트 할 것.
