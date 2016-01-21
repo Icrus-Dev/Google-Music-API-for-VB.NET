@@ -620,7 +620,7 @@ Retry:
 
             Return True
         End Function
-        Public Async Function SearchTracks(Keyword As String) As Task(Of SearchTracksResponse)
+        Public Async Function SearchStoreTracks(Keyword As String) As Task(Of SearchTracksResponse)
             '## 일부 영역은 JSON name을 확인할 수 없어 구현하지 못함. ##
             '## 이 기능은 불안정함. ##
             SwitchToWebHttp()
