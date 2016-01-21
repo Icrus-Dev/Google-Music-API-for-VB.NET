@@ -1,20 +1,56 @@
 # Google Music API for VB.NET
-- ÀÌ ÇÁ·ÎÁ§Æ®´Â Unofficial Google Music API¸¦ VB.NET À¸·Î ÄÚµùÇÑ ÇÁ·ÎÁ§Æ®ÀÔ´Ï´Ù.
-- ÀÌ ÇÁ·ÎÁ§Æ®´Â Simon-Weber ´ÔÀÇ gmusicapi: an unofficial API for Google Play Music [https://github.com/simon-weber/gmusicapi] ¸¦ ÂüÁ¶ÇÏ¿´½À´Ï´Ù.
+- ì´ í”„ë¡œì íŠ¸ëŠ” Unofficial Google Music APIë¥¼ VB.NET ìœ¼ë¡œ ì½”ë”©í•œ í”„ë¡œì íŠ¸ì…ë‹ˆë‹¤.
+- ì´ í”„ë¡œì íŠ¸ëŠ” Simon-Weber ë‹˜ì˜ gmusicapi: an unofficial API for Google Play Music [https://github.com/simon-weber/gmusicapi] ë¥¼ ì°¸ì¡°í•˜ì˜€ìŠµë‹ˆë‹¤.
 
 ==================================================================================================
 
-- ÀÌ ÇÁ·ÎÁ§Æ®´Â Google OAuth 2.0 À» À§ÇØ Google¿¡¼­ Á¦°øÇÑ Nuget Package¸¦ »ç¿ëÇÏ°í ÀÖ½À´Ï´Ù.
-  o/oauth2/programmatic_auth ¸¦ ÀÌ¿ëÇØ ÀÚµ¿ ÀÎÁõÀ» ÁøÇàÇÒ ¼ö ÀÖ½À´Ï´Ù.
+- ì´ í”„ë¡œì íŠ¸ëŠ” Google OAuth 2.0 ì„ ìœ„í•´ Googleì—ì„œ ì œê³µí•œ Nuget Packageë¥¼ ì‚¬ìš©í•˜ê³  ìˆìŠµë‹ˆë‹¤.
+  o/oauth2/programmatic_auth ë¥¼ ì´ìš©í•´ ìë™ ì¸ì¦ì„ ì§„í–‰í•  ìˆ˜ ìˆìŠµë‹ˆë‹¤.
   
-- ÀÌ ÇÁ·ÎÁ§Æ®ÀÇ API¿¡ ÀÖ´Â ¸ğµç ÇÔ¼ö´Â Request¿Í Response·Î ±¸¼ºµÇ¾îÀÖ½À´Ï´Ù.
-  ÇØ´ç API ÇÔ¼ö°¡ ¹İÈ¯ÇÏ´Â °ªÀº ±× ÇÔ¼ö¿¡ ¸Â´Â Response¸¦ ÀÌ¿ëÇØ ¹ŞÀ» ¼ö ÀÖ½À´Ï´Ù.
-  Response´Â status, description, response ·Î ³ª´©¾îÁö¸ç, 
-  status´Â Request ¼º°ø ¿©ºÎ(boolean), descriptionÀº status°¡ falseÀÏ °æ¿ì¿¡ ¹İÈ¯µÇ´Â ¿À·ù ³»¿ë, response´Â request¿¡ ´ëÇÑ JSON Response¸¦ ³ªÅ¸³À´Ï´Ù.
-  
+- ì´ í”„ë¡œì íŠ¸ì˜ APIì— ìˆëŠ” ëª¨ë“  í•¨ìˆ˜ëŠ” Requestì™€ Responseë¡œ êµ¬ì„±ë˜ì–´ìˆìŠµë‹ˆë‹¤.
+  í•´ë‹¹ API í•¨ìˆ˜ê°€ ë°˜í™˜í•˜ëŠ” ê°’ì€ ê·¸ í•¨ìˆ˜ì— ë§ëŠ” Responseë¥¼ ì´ìš©í•´ ë°›ì„ ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+  ResponseëŠ” status, description, response ë¡œ ë‚˜ëˆ„ì–´ì§€ë©°, 
+  statusëŠ” Request ì„±ê³µ ì—¬ë¶€(boolean), descriptionì€ statusê°€ falseì¼ ê²½ìš°ì— ë°˜í™˜ë˜ëŠ” ì˜¤ë¥˜ ë‚´ìš©, responseëŠ” requestì— ëŒ€í•œ JSON Responseë¥¼ ë‚˜íƒ€ëƒ…ë‹ˆë‹¤.
+
+- ì´ í”„ë¡œì íŠ¸ëŠ” WebClientë¥¼ ì´ìš©í•˜ë©°, ë‹¤ìŒê³¼ ê°™ì€ ê¸°ëŠ¥ì„ ì§€ì›í•©ë‹ˆë‹¤.
+ > AddTrack
+ > AddTracks
+ > AddPlaylist
+ > AddPlaylistContent
+ > AddPlaylistContents // ë¯¸ì™„ì„± //
+ > DeleteTrack
+ > DeleteTracks
+ > DeletePlaylist
+ > DeletePlaylistContent
+ > DeletePlaylistContents
+ > EditTrack
+ > EditTracks
+ > EditPlaylist
+ > FindTracks
+ > FindPlaylists
+ > GetAllTracks
+ > GetAllPlaylists
+ > GetPlaylistContents
+ > GetAutoPlaylistContents
+ > GetDeletedTracks
+ > GetPermanentlyDeletedTracks
+ > GetRandomTracks // ë¯¸ì™„ì„± //
+ > GetSuggestedMetadata
+ > GetStreamingUrl
+ > GetDownloadUrl
+ > GetRegisteredDevices
+ > GetAllSettings
+ > RestoreDeletedTrack
+ > RestoreDeletedTracks
+ > RestorePermanentlyDeletedTrack
+ > RestorePermanentlyDeletedTracks
+ > SearchStoreTracks
+ > SearchPlaylists
+ > UploadAlbumArt
+ 
 ### TODO
-- AddPlaylistContentsRequest ¿¡ ÇÊ¿äÇÑ JSON name °ªÀ» Ã£°í, ¾÷µ¥ÀÌÆ® ÇÒ °Í.
-- I'm Feeling Lucky! ¸¦ ÀÌ¿ëÇÑ Random Track List¸¦ °¡Á®¿Ã ÇÔ¼ö ÀÛ¼ºÇÒ °Í.
-- https://play.google.com/music/services/recordplaying ÀÇ ¿ªÇÒÀ» ¾Ë¾Æ³¾ °Í.
-- AddTracks ÇÔ¼öÀÇ ÄÚµå¸¦ ÃÖÀûÈ­ ÇÒ °Í
-- Àü¹İÀûÀÎ ¿¹¿Ü Ã³¸® ¹æ¾ÈÀ» °­±¸ÇÒ °Í. (GoogleHttp ÀÇ SendRequest¿¡¼­ ¿¹¿Ü°¡ ¹ß»ıÇÒ ½Ã ReportError°¡ µ¿ÀÛÇÏÁö ¾Ê´Â ¹®Á¦°¡ ÀÖÀ½) 
+- AddPlaylistContentsRequest ì— í•„ìš”í•œ JSON name ê°’ì„ ì°¾ê³ , ì—…ë°ì´íŠ¸ í•  ê²ƒ.
+- I'm Feeling Lucky! ë¥¼ ì´ìš©í•œ Random Track Listë¥¼ ê°€ì ¸ì˜¬ í•¨ìˆ˜ ì‘ì„±í•  ê²ƒ.
+- https://play.google.com/music/services/recordplaying ì˜ ì—­í• ì„ ì•Œì•„ë‚¼ ê²ƒ.
+- AddTracks í•¨ìˆ˜ì˜ ì½”ë“œë¥¼ ìµœì í™” í•  ê²ƒ
+- ì „ë°˜ì ì¸ ì˜ˆì™¸ ì²˜ë¦¬ ë°©ì•ˆì„ ê°•êµ¬í•  ê²ƒ. (GoogleHttp ì˜ SendRequestì—ì„œ ì˜ˆì™¸ê°€ ë°œìƒí•  ì‹œ ReportErrorê°€ ë™ì‘í•˜ì§€ ì•ŠëŠ” ë¬¸ì œê°€ ìˆìŒ) 
