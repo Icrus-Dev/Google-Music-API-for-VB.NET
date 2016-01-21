@@ -141,11 +141,6 @@ Namespace Http
                 Request.Headers.Add(Item.Key, Item.Value)
             Next
         End Sub
-        Private Function NullString(str As String) As String
-            If String.IsNullOrWhiteSpace(str) Then Return "NULL"
-
-            Return str
-        End Function
         '==================================================
         Private Sub ReceiveEvent(sender As Object, e As HttpProgressEventArgs)
             Dim Info As String
