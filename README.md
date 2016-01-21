@@ -50,6 +50,7 @@
  
 ### TODO
 - AddPlaylistContentsRequest 에 필요한 JSON name 값을 찾고, 업데이트 할 것.
+- AddTracks 에서 음악 파일의 AlbumArt를 업로드하고 Url를 추가하는 작업을 진행할 것.
 - I'm Feeling Lucky! 를 이용한 Random Track List를 가져올 함수 작성할 것.
 - https://play.google.com/music/services/recordplaying 의 역할을 알아낼 것.
 - AddTracks 함수의 코드를 최적화 할 것
