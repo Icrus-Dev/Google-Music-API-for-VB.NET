@@ -13,7 +13,7 @@
   status는 Request 성공 여부(boolean), description은 status가 false일 경우에 반환되는 오류 내용, response는 request에 대한 JSON Response를 나타냅니다.
 
 - 이 프로젝트는 WebClient를 이용하며, 다음과 같은 기능을 지원합니다.
- > AddTrack
+ - AddTrack
  > AddTracks
  > AddPlaylist
  > AddPlaylistContent
