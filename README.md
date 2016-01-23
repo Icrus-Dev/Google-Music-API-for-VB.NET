@@ -42,6 +42,7 @@
  - GetDownloadUrl
  - GetRegisteredDevices
  - GetAllSettings
+ - GetDismissedItems
  - RestoreDeletedTrack
  - RestoreDeletedTracks
  - RestorePermanentlyDeletedTrack
