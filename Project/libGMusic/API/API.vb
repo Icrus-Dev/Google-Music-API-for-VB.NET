@@ -577,6 +577,22 @@ Retry:
 
             Return Response
         End Function
+        Public Async Function GetDismissedItems() As Task(Of GetDismissedItemsResponse)
+            SwitchToWebHttp()
+
+            Dim Request As GetDismissedItemsRequest = New GetDismissedItemsRequest
+            Request.sessionId = Auth.SessionId
+
+            Dim Url As String = BaseUrl & GetParameter("getdismisseditems", Request)
+            Dim Response As GetDismissedItemsResponse = New GetDismissedItemsResponse
+            Try
+                Response.response = Await Http.SendRequest(Of GetDismissedItemsResponse.Field)(HttpMethod.Post, Url, ResultType.JSON_DESERIALIZE_TYPE)
+            Catch ex As Exception
+                ReportError(Response)
+            End Try
+
+            Return Response
+        End Function
         Public Async Function RestoreDeletedTrack(TrackId As String) As Task(Of RestoreDeletedTracksResponse)
             Return Await RestoreDeletedTracks({TrackId})
         End Function
