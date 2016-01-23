@@ -137,12 +137,12 @@ Namespace Model
         Public listId As String
         Public track As List(Of TrackField) = New List(Of TrackField)
         Public Class TrackField
-            Public id As String
+            Public uuid As String
         End Class
 
         Sub AddTrackField(id As String)
             Dim TrackField As TrackField = New TrackField
-            TrackField.id = id
+            TrackField.uuid = id
 
             track.Add(TrackField)
         End Sub
@@ -239,7 +239,7 @@ Namespace Model
 
         Public response As Field = New Field
         Public Class Field
-            Public timestampMillis As Long
+            Public timestampMillis As Long?
         End Class
     End Class
     Public Class EditPlaylistRequest
@@ -405,11 +405,11 @@ Namespace Model
             Public Class PlaylistField
                 Public id As String
                 Public title As String
-                Public creationTimestamp As Long
+                Public creationTimestamp As Long?
                 Public recentTimestamp As String
-                Public type As Integer
+                Public type As Integer?
                 Public sharedToken As String
-                Public lastModifiedTimestamp As Long
+                Public lastModifiedTimestamp As Long?
                 Public description As String
                 Public ownerName As String
                 Public playlistArtUrl() As String
@@ -456,11 +456,11 @@ Namespace Model
 
         Public response As Field
         Public Class Field
-            Public isFreeRadioUser As Boolean
-            Public tier As Integer
+            Public isFreeRadioUser As Boolean?
+            Public tier As Integer?
             Public streamAuthId As String
             Public url As String
-            Public replayGain As Integer
+            Public replayGain As Integer?
         End Class
     End Class
     Public Class GetAllSettingsRequest
@@ -483,24 +483,54 @@ Namespace Model
                     Public experimentName As String
                     Public displayName As String
                     Public description As String
-                    Public enabled As Boolean
+                    Public enabled As Boolean?
                 End Class
                 Public Class UploadDeviceField
                     Public id As String
                     Public lastEventTimeMillis As String
                     Public lastAccessedTimeMillis As String
                     Public name As String
-                    Public deviceType As Integer
+                    Public deviceType As Integer?
                     Public carrier As String
                     Public manufacturer As String
                     Public model As String
                     Public lastAccessedFormatted As String
                 End Class
                 Public Class EntitlementInfoField
-                    Public isSubscription As Boolean
-                    Public isTrial As Boolean
-                    Public isCanceled As Boolean
-                    Public subscriptionNewsletter As Boolean
+                    Public isSubscription As Boolean?
+                    Public isTrial As Boolean?
+                    Public isCanceled As Boolean?
+                    Public subscriptionNewsletter As Boolean?
+                End Class
+            End Class
+        End Class
+    End Class
+    Public Class GetDismissedItemsRequest
+        Public sessionId As String
+    End Class
+    Public Class GetDismissedItemsResponse
+        Inherits ResponseField
+
+        Public response As Field
+        Public Class Field
+            Public item() As ItemField
+            Public minLastModifiedMillisIgnored As Boolean?
+
+            Public Class ItemField
+                Public uuid As String
+                Public itemId As ItemIdField
+                Public suggestionReason As Integer?
+                Public dismissalTimestampMillis As Long?
+
+                Public Class ItemIdField
+                    Public type As Integer?
+                    Public albumId As AlbumIdField
+
+                    Public Class AlbumIdField
+                        Public title As String
+                        Public artist As String
+                        Public metajamCompactKey As String
+                    End Class
                 End Class
             End Class
         End Class
@@ -664,8 +694,8 @@ Namespace Model
                 Public Class ExternalFieldTransfersField
                     Public name As String
                     Public status As String
-                    Public bytesTransferred As Long
-                    Public bytesTotal As Long
+                    Public bytesTransferred As Long?
+                    Public bytesTotal As Long?
                     Public putInfo As PutInfoField
                     Public content_type As String
 
@@ -735,7 +765,7 @@ Namespace Model
                 Public Class ExternalFieldTransfersField
                     Public Name As String
                     Public Status As String
-                    Public BytesTransferred As Integer
+                    Public BytesTransferred As Integer?
                     Public ContentType As String
                     Public putInfo As PutInfoField
 
@@ -764,7 +794,7 @@ Namespace Model
 
                 Public Class CustomerSpecificInfoField
                     Public ServerFileReference As String
-                    Public ResponseCode As Integer
+                    Public ResponseCode As Integer?
                 End Class
                 Public Class RequestRejectedInfoField
                     Public reasonDescription As String
