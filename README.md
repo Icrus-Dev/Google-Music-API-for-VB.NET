@@ -28,8 +28,10 @@
  - EditTrack
  - EditTracks
  - EditPlaylist
+ - EditLabSettings
  - FindTracks
  - FindPlaylists
+ - FetchQuerySuggestions
  - GetAllTracks
  - GetAllPlaylists
  - GetPlaylistContents
@@ -43,6 +45,9 @@
  - GetRegisteredDevices
  - GetAllSettings
  - GetDismissedItems
+ - GetStatus
+ - GetOffer
+ - GetListenNowItems
  - RestoreDeletedTrack
  - RestoreDeletedTracks
  - RestorePermanentlyDeletedTrack
