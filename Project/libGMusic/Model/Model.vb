@@ -134,17 +134,18 @@ Namespace Model
         '## 확인하지 않음 ##
         '[["rqasqdgw14a4",1],["71228933-de0e-461b-b907-a8a10f62e15d",[["6269b26d-6a42-3105-aeb2-36c82b01f4ad",2]]]]
         Public sessionId As String
-        Public listId As String
-        Public track As List(Of TrackField) = New List(Of TrackField)
+        Public id As String '// id listId
+        Public songRefs As List(Of TrackField) = New List(Of TrackField) '// track tracks song songs
         Public Class TrackField
-            Public uuid As String
+            Public songId As String '// id trackId songId
+            Public requestType As Integer = 2
         End Class
 
         Sub AddTrackField(id As String)
             Dim TrackField As TrackField = New TrackField
-            TrackField.uuid = id
+            TrackField.songId = id
 
-            track.Add(TrackField)
+            songRefs.Add(TrackField)
         End Sub
     End Class
     Public Class _AddPlaylistContentsRequest
@@ -230,6 +231,9 @@ Namespace Model
             Public deleteIds() As String
         End Class
     End Class
+    Public Class DeleteUserActionHistoryRequest
+        Public sessionId As String
+    End Class
     Public Class EditTrackRequest
         Public sessionId As String
         Public track As List(Of TrackMetadataField) = New List(Of TrackMetadataField)
@@ -255,6 +259,33 @@ Namespace Model
         Public Class Field
             Public id As String
             Public sharedToken As String
+        End Class
+    End Class
+    Public Class EditLabSettingsRequest
+        Public sessionId As String
+        Public labs As LabsField
+        Public Class LabsField
+            Public dn As Boolean
+            Public ha As Boolean
+            Public sr As Boolean
+            Public view_song_comments As Boolean
+            Public fireplace_chromecast As Boolean
+        End Class
+    End Class
+    Public Class FetchQuerySuggestionsRequest
+        Public sessionId As String
+        Public query As String
+    End Class
+    Public Class FetchQuerySuggestionsResponse
+        Inherits ResponseField
+
+        Public response As Field
+        Public Class Field
+            Public suggestionData() As SuggestionDataField
+            Public Class SuggestionDataField
+                Public suggestionType As Integer?
+                Public suggestionString As String
+            End Class
         End Class
     End Class
     Public Class GetAllTracksRequest
@@ -530,6 +561,152 @@ Namespace Model
                         Public title As String
                         Public artist As String
                         Public metajamCompactKey As String
+                    End Class
+                End Class
+            End Class
+        End Class
+    End Class
+    Public Class GetStatusRequest
+        Public sessionId As String
+    End Class
+    Public Class GetStatusResponse
+        Inherits ResponseField
+        '{"availableTracks":1289,"uploadStatus":[]}
+        Public response As Field
+        Public Class Field
+            Public availableTracks As Integer?
+            Public uploadstatus() As Object '// ??
+        End Class
+    End Class
+    Public Class GetOfferRequest
+        Public sessionId As String
+    End Class
+    Public Class GetOfferResponse
+        Inherits ResponseField
+        '{"offerDetail":[],"lockerServiceAvailable":true}
+        Public response
+        Public Class Field
+            Public offerDetail() As OfferDetailField
+            Public lockerServiceAvailable As Boolean?
+
+            Public Class OfferDetailField
+                Public offerId As String
+                Public description As String
+                Public shortDescription As String
+                Public freeTrial As Boolean?
+                Public fopLess As Boolean?
+                Public offerMessages As OfferMessagesField
+
+                Public Class OfferMessagesField
+                    Public title As String
+                    Public subtitle As String
+                    Public shortBody As String
+                    Public longBody As String
+                End Class
+            End Class
+        End Class
+    End Class
+    Public Class GetListenNowItemsRequest
+        Public sessionId As String
+    End Class
+    Public Class GetListenNowItemsResponse
+        Inherits ResponseField
+        '## 일부 변수는 형식이 지정되지 않음 ##
+
+        Public response As Field
+        Public Class Field
+            Public item() As ItemField
+
+            Public Class ItemField
+                Public type As Integer?
+                Public radioStation As RadioStationField
+                Public suggestionReasonType As Integer?
+                Public localizedSuggestionReason As String
+
+                Public Class RadioStationField
+                    Public id As String
+                    Public name As String
+                    Public description As String
+                    Public radioSeed As RadioSeedField
+                    Public radioSeedId As RadioSeedIdField
+                    Public stationSeed() As StationSeedField
+                    Public tuning()
+                    Public recentEvent()
+                    Public relatedGroup()
+                    Public headerArtUrl()
+                    Public compositeArtUrl() As CompositeArtUrlField
+                    Public profileOwnerImage() As ProfileOwnerImageField
+                    Public image() As ImageField
+                    Public featuredArtist()
+                    Public relatedStation()
+                    Public imageUrl() As String
+                    Public contentType()
+                    Public annotationPlayableItem()
+
+                    Public Class RadioSeedField
+                        Public artist As ArtistField
+                        Public genre As GenreField
+                    End Class
+                    Public Class RadioSeedIdField
+                        Public seedType As Integer?
+                        Public seedId As String
+                    End Class
+                    Public Class StationSeedField
+                        Public seed As SeedField
+                        Public id As IdField
+
+                        Public Class SeedField
+                            Public artist As ArtistField
+                        End Class
+                        Public Class IdField
+                            Public seedType As Integer?
+                            Public seedId As String
+                        End Class
+                    End Class
+                    Public Class CompositeArtUrlField
+                        Public url As String
+                        Public autogen As Boolean?
+                        Public aspectRatio As Integer?
+                    End Class
+                    Public Class ProfileOwnerImageField
+                        Public url As String
+                        Public autogen As Boolean?
+                        Public aspectRatio As Integer?
+                    End Class
+                    Public Class ArtistField
+                        Public matchedId As String
+                        Public name As String
+                        Public totalTrackCount As Integer?
+                        Public album()
+                        Public imageBaseUrl As String
+                        Public genre() As String
+                        Public relatedArtist()
+                        Public topTrack()
+                        Public artistBioAttribution As ArtistBioAttributionField
+                        Public autogenArt As Boolean?
+                        Public image() As ImageField
+                        Public concert()
+                        Public canMakeRadio As Boolean?
+
+                        Public Class ArtistBioAttributionField
+                            Public sourceTitle As String
+                            Public sourceUrl As String
+                            Public licenseTitle As String
+                            Public licenseUrl As String
+                        End Class
+                    End Class
+                    Public Class GenreField
+                        Public name As String
+                        Public id As String
+                        Public parentGenreId As String
+                        Public subGenreId() As String
+                        Public imageUrl() As String
+                        Public album()
+                    End Class
+                    Public Class ImageField
+                        Public url As String
+                        Public autogen As Boolean?
+                        Public aspectRatio As Integer?
                     End Class
                 End Class
             End Class
