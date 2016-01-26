@@ -49,7 +49,6 @@ Namespace API
         Sub New(MasterAuth As MasterAuth)
             Auth = MasterAuth
         End Sub
-        '==================================================
         Public Async Function AddTrack(FilePath As String, Optional Overwrite As Boolean = False) As Task(Of AddTrackResponse)
             Return Await AddTracks({FilePath}, Overwrite)
         End Function
@@ -236,17 +235,22 @@ Retry:
             '## 확인하지 않음 ##
             SwitchToWebHttp()
 
-            Dim Request As AddPlaylistContentsRequest = New AddPlaylistContentsRequest
+            Dim Request As _AddPlaylistContentsRequest = New _AddPlaylistContentsRequest
             Request.sessionId = Auth.SessionId
+            Request.songIds = TrackId
             Request.listId = PlaylistId
+
+            Dim Request2 As AddPlaylistContentsRequest = New AddPlaylistContentsRequest
+            Request2.sessionId = Auth.SessionId
+            Request2.id = PlaylistId
             For Each Id As String In TrackId
-                Request.AddTrackField(Id)
+                Request2.AddTrackField(Id)
             Next
 
-            Dim Url As String = BaseUrl & GetParameter("addtrackstoplaylist", Request)
-
-            'Dim Url As String = BaseUrl & GetParameter("addtrackstoplaylist", Nothing) & "&format=jsarray"
-            'Dim Content As GoogleHttp.HttpContent = Http.CreateHttpContent(Request.Build, "application/x-www-form-urlencoded;charset=UTF-8")
+            Dim Url As String = BaseUrl & GetParameter("addtrackstoplaylist", Request2)
+            Debug.WriteLine(Url)
+            'Dim Url As String = BaseUrl & GetParameter("addtrackstoplaylist", Nothing) & "&alt=json&format=jsarray"
+            'Dim Content As StringContent = New StringContent(Request.Build)
 
             Dim Response As AddPlaylistContentsResponse = New AddPlaylistContentsResponse
             Response.response = New AddPlaylistContentsResponse.Field
@@ -347,6 +351,21 @@ Retry:
 
             Return Await DeletePlaylistContents(TrackId, EntryIds, PlaylistId)
         End Function
+        Public Async Function DeleteUserActionHistory() As Task(Of Boolean)
+            SwitchToWebHttp()
+
+            Dim Request As DeleteUserActionHistoryRequest = New DeleteUserActionHistoryRequest
+            Request.sessionId = Auth.SessionId
+
+            Dim Url As String = BaseUrl & GetParameter("deleteuseractionhistory", Request)
+            Try
+                Await Http.SendRequest(HttpMethod.Post, Url, ResultType.NULL_TYPE)
+                If Http.LastCode <> HttpStatusCode.OK Then Return False
+                Return True
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
         Public Async Function EditTrack(Metadata As TrackMetadataField) As Task(Of EditTrackResponse)
             Return Await EditTracks({Metadata})
         End Function
@@ -386,6 +405,26 @@ Retry:
 
             Return Response
         End Function
+        Public Async Function EditLabSettings(DesktopNotifications As Boolean, HTML5Audio As Boolean, ViewTrackComments As Boolean, ChromecastFireplaceVisualizer As Boolean) As Task(Of Boolean)
+            SwitchToWebHttp()
+
+            Dim Request As EditLabSettingsRequest = New EditLabSettingsRequest
+            Request.sessionId = Auth.SessionId
+            Request.labs = New EditLabSettingsRequest.LabsField
+            Request.labs.dn = DesktopNotifications
+            Request.labs.ha = HTML5Audio
+            Request.labs.view_song_comments = ViewTrackComments
+            Request.labs.fireplace_chromecast = ChromecastFireplaceVisualizer
+
+            Dim Url As String = BaseUrl & GetParameter("modifylab", Request)
+            Try
+                Await Http.SendRequest(HttpMethod.Post, Url, ResultType.NULL_TYPE)
+                If Http.LastCode <> HttpStatusCode.OK Then Return False
+                Return True
+            Catch ex As Exception
+                Return False
+            End Try
+        End Function
         Public Async Function FindTracks(Title As String) As Task(Of GetAllTracksResponse)
             Dim Tracks As GetAllTracksResponse = Await GetAllTracks()
             If Tracks.status = False Then Return Tracks
@@ -402,8 +441,24 @@ Retry:
 
             Return Playlists
         End Function
+        Public Async Function FetchQuerySuggestions(Keyword As String) As Task(Of FetchQuerySuggestionsResponse)
+            SwitchToWebHttp()
+
+            Dim Request As FetchQuerySuggestionsRequest = New FetchQuerySuggestionsRequest
+            Request.sessionId = Auth.SessionId
+            Request.query = Keyword
+
+            Dim Url As String = BaseUrl & GetParameter("fetchquerysuggestions", Request)
+            Dim Response As FetchQuerySuggestionsResponse = New FetchQuerySuggestionsResponse
+            Try
+                Response.response = Await Http.SendRequest(Of FetchQuerySuggestionsResponse.Field)(HttpMethod.Post, Url, ResultType.JSON_DESERIALIZE_TYPE)
+            Catch ex As Exception
+                ReportError(Response)
+            End Try
+
+            Return Response
+        End Function
         Public Async Function GetAllTracks(Optional IncludeDeletedTracks As Boolean = False) As Task(Of GetAllTracksResponse)
-            Dim mTimer As Double = Timer
             SwitchToWebHttp()
 
             Dim Request As GetAllTracksRequest = New GetAllTracksRequest
@@ -425,7 +480,6 @@ Retry:
                 ReportError(Response)
             End Try
 
-            Debug.WriteLine(Timer - mTimer)
             Return Response
         End Function
         Public Async Function GetAllPlaylists() As Task(Of GetAllPlaylistsResponse)
@@ -434,9 +488,8 @@ Retry:
             Dim Request As GetAllPlaylistsRequest = New GetAllPlaylistsRequest
             Request.sessionId = Auth.SessionId
 
-            Dim Url As String = BaseUrl & GetParameter("loadplaylists", Request)
+            Dim Url As String = BaseUrl & GetParameter("loadplaylists", Request) & "&format=jsarray"
             Dim Response As GetAllPlaylistsResponse = New GetAllPlaylistsResponse
-
             Try
                 Response.response = Await Http.SendRequest(Of GetAllPlaylistsResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
@@ -500,8 +553,7 @@ Retry:
             SwitchToWebHttp()
 
             Dim Request As GetRandomTracksRequest = New GetRandomTracksRequest
-            Request.sessionId = Auth.SessionId
-            '// 추가 요소 필요 //
+            Request.sessionId = Auth.SessionId  '// 추가 요소 필요 //
 
             Dim Url As String = BaseUrl & GetParameter("radio/fetchradiofeed", Request)
             Dim Response As String
@@ -593,6 +645,55 @@ Retry:
 
             Return Response
         End Function
+        Public Async Function GetStatus() As Task(Of GetStatusResponse)
+            '## 일부 확인되지 않음 ##
+            SwitchToWebHttp()
+
+            Dim Request As GetStatusRequest = New GetStatusRequest
+            Request.sessionId = Auth.SessionId
+
+            Dim Url As String = BaseUrl & GetParameter("getstatus", Request)
+            Dim Response As GetStatusResponse = New GetStatusResponse
+            Try
+                Response.response = Await Http.SendRequest(Of GetStatusResponse.Field)(HttpMethod.Post, Url, ResultType.JSON_DESERIALIZE_TYPE)
+            Catch ex As Exception
+                ReportError(Response)
+            End Try
+
+            Return Response
+        End Function
+        Public Async Function GetOffer() As Task(Of GetOfferResponse)
+            SwitchToWebHttp()
+
+            Dim Request As GetOfferRequest = New GetOfferRequest
+            Request.sessionId = Auth.SessionId
+
+            Dim Url As String = BaseUrl & GetParameter("getoffers", Request)
+            Dim Response As GetOfferResponse = New GetOfferResponse
+            Try
+                Response.response = Await Http.SendRequest(Of GetOfferResponse.Field)(HttpMethod.Post, Url, ResultType.JSON_DESERIALIZE_TYPE)
+            Catch ex As Exception
+                ReportError(Response)
+            End Try
+
+            Return Response
+        End Function
+        Public Async Function GetListenNowItems() As Task(Of GetListenNowItemsResponse)
+            SwitchToWebHttp()
+
+            Dim Request As GetListenNowItemsRequest = New GetListenNowItemsRequest
+            Request.sessionId = Auth.SessionId
+
+            Dim Url As String = BaseUrl & GetParameter("getfelistennowitems", Request)
+            Dim Response As GetListenNowItemsResponse = New GetListenNowItemsResponse
+            Try
+                Response.response = Await Http.SendRequest(Of GetListenNowItemsResponse.Field)(HttpMethod.Post, Url, ResultType.JSON_DESERIALIZE_TYPE)
+            Catch ex As Exception
+                ReportError(Response)
+            End Try
+
+            Return Response
+        End Function
         Public Async Function RestoreDeletedTrack(TrackId As String) As Task(Of RestoreDeletedTracksResponse)
             Return Await RestoreDeletedTracks({TrackId})
         End Function
@@ -637,8 +738,7 @@ Retry:
             Return True
         End Function
         Public Async Function SearchStoreTracks(Keyword As String) As Task(Of SearchTracksResponse)
-            '## 일부 영역은 JSON name을 확인할 수 없어 구현하지 못함. ##
-            '## 이 기능은 불안정함. ##
+            '## 일부 확인되지 않음 ##
             SwitchToWebHttp()
 
             Dim Request As SearchTracksRequest = New SearchTracksRequest
