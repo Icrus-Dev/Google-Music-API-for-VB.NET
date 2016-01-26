@@ -646,7 +646,6 @@ Retry:
             Return Response
         End Function
         Public Async Function GetStatus() As Task(Of GetStatusResponse)
-            '## 일부 확인되지 않음 ##
             SwitchToWebHttp()
 
             Dim Request As GetStatusRequest = New GetStatusRequest
@@ -738,7 +737,6 @@ Retry:
             Return True
         End Function
         Public Async Function SearchStoreTracks(Keyword As String) As Task(Of SearchTracksResponse)
-            '## 일부 확인되지 않음 ##
             SwitchToWebHttp()
 
             Dim Request As SearchTracksRequest = New SearchTracksRequest
