@@ -49,24 +49,18 @@ Namespace API
         Sub New(MasterAuth As MasterAuth)
             Auth = MasterAuth
         End Sub
-        Public Async Function AddTrack(FilePath As String, Optional Overwrite As Boolean = False) As Task(Of AddTrackResponse)
+        Public Async Function AddTrack(FilePath As String, Optional Overwrite As Boolean = False) As Task(Of AddTracksResponse)
             Return Await AddTracks({FilePath}, Overwrite)
         End Function
-        Public Async Function AddTracks(FilePath As IEnumerable(Of String), Optional Overwrite As Boolean = False) As Task(Of AddTrackResponse)
-            '## 코드 최적화 필요 ##
+        Public Async Function AddTracks(FilePath As IEnumerable(Of String), Optional Overwrite As Boolean = False) As Task(Of AddTracksResponse)
             SwitchToMMHttp()
 
-            Dim Response As AddTrackResponse = New AddTrackResponse
-            Response.description = New List(Of String)
-            Response.response = New AddTrackResponse.Field
-
-            Dim FailureList As List(Of String) = New List(Of String)
-            Dim RetryList As List(Of String) = New List(Of String)
+            Dim Response As AddTracksResponse = New AddTracksResponse
+            Response.response = New AddTracksResponse.Field
 
             Dim UploadResponse As RelatedToUploadResponse
             UploadResponse = Await UploadAuthorization()
             If UploadResponse.status = False Then
-                Response = New AddTrackResponse
                 Response.status = False
                 Response.description = UploadResponse.description
 
@@ -77,129 +71,140 @@ Namespace API
 
             UploadResponse = Await UpdateUploadState(UpdateUploadStateRequest.UploadState.START)
             If UploadResponse.status = False Then
-                Response = New AddTrackResponse
                 Response.status = False
                 Response.description = UploadResponse.description
 
                 Return Response
             End If
 
-            Dim Requestes As List(Of UploadTrackRequest) = New List(Of UploadTrackRequest)
-            Dim Request As UploadTrackRequest
+            Dim Request As List(Of AddTracksRequest) = New List(Of AddTracksRequest)
+            Dim Item As AddTracksRequest
             For Each File As String In FilePath
-                Request = New UploadTrackRequest
-                Request.filepath = File
-                Request.metadata = GetTrackMetadata(File)
-                Requestes.Add(Request)
+                Item = New AddTracksRequest
+                Item.filepath = File
+                Item.metadata = GetTrackMetadata(File)
+                Request.Add(Item)
             Next
 
-            UploadResponse = Await UploadMetadata(Requestes.Select(Function(Func) Func.metadata))
+            UploadResponse = Await UploadMetadata(Request.Select(Function(Func) Func.metadata))
             If UploadResponse.status = False Then
-                Response = New AddTrackResponse
                 Response.status = False
                 Response.description = UploadResponse.description
 
                 Return Response
             End If
 
-            For Each Request In Requestes
-                Request.sci = UploadResponse.response.metadata_response.signed_challenge_info.SingleOrDefault(Function(Func) Func.challenge_info.client_track_id = Request.metadata.client_id)
-                If Request.sci Is Nothing Then
-                    FailureList.Add(Request.filepath & " | No Response")
-                    Requestes.Remove(Request)
-                    If Requestes.Count = 0 Then GoTo Err
+            For Each Item In Request
+                Item.sci = UploadResponse.response.metadata_response.signed_challenge_info.SingleOrDefault(Function(Func) Func.challenge_info.client_track_id = Item.metadata.client_id)
+                If Item.sci Is Nothing Then
+                    Dim Failed As AddTracksResponse.Field.FailedField = New AddTracksResponse.Field.FailedField
+                    Failed.path = Item.filepath
+                    Failed.description = "UploadMetadata Failed. - No Data"
+                    Response.response.failed.Add(Failed)
+                    Request.Remove(Item) : If Request.Count = 0 Then Return Response
                 End If
             Next
 
-            UploadResponse = Await UploadSample(Requestes)
+            UploadResponse = Await UploadSample(Request)
             If UploadResponse.status = False Then
-                Response = New AddTrackResponse
                 Response.status = False
                 Response.description = UploadResponse.description
 
                 Return Response
             End If
 
-            For Each Request In Requestes
-                Request.tsr = UploadResponse.response.sample_response.track_sample_response.SingleOrDefault(Function(Func) Func.client_track_id = Request.metadata.client_id)
-                If Request.tsr Is Nothing Then
-                    FailureList.Add(Request.filepath & " | No Response")
-                    Requestes.Remove(Request)
-                    If Requestes.Count = 0 Then GoTo Err
+            Dim Temp As String
+            Dim AlbumArtResponse As UploadAlbumArtResponse
+            For Each Item In Request
+                Item.tsr = UploadResponse.response.sample_response.track_sample_response.SingleOrDefault(Function(Func) Func.client_track_id = Item.metadata.client_id)
+                If Item.tsr Is Nothing Then
+                    Dim Failed As AddTracksResponse.Field.FailedField = New AddTracksResponse.Field.FailedField
+                    Failed.path = Item.filepath
+                    Failed.description = "UploadSample Failed. - No Data"
+                    Response.response.failed.Add(Failed)
+                    Request.Remove(Item) : If Request.Count = 0 Then Return Response
                 End If
-                If Request.tsr.response_code = TrackSampleResponse.ResponseCode.UPLOAD_REQUESTED OrElse Request.tsr.response_code = TrackSampleResponse.ResponseCode.ALREADY_EXISTS Then
 
-                    If Request.tsr.response_code = TrackSampleResponse.ResponseCode.ALREADY_EXISTS Then
-                        If Overwrite Then
-                            Dim DeleteResponse As DeleteTrackResponse = Await DeleteTrack(Request.tsr.server_track_id, True)
-                            If DeleteResponse.status = False Then
-                                FailureList.Add(Request.filepath & " | " & Request.tsr.response_code.ToString & "/Overwrite:" & Join(DeleteResponse.description.ToArray, "/"))
-                                Requestes.Remove(Request)
-                                If Requestes.Count = 0 Then GoTo Err
-                            End If
+                Temp = Path.GetTempFileName & ".png" '// 음.. 일단 포맷을 알 방법을 찾을 때 까지는 임시로 이렇게.. //
+                Try
+                    File.WriteAllBytes(Temp, GetAlbumArtData(Item.filepath))
 
-                            RetryList.Add(Request.filepath)
-                        Else
-                            FailureList.Add(Request.filepath & " | " & Request.tsr.response_code.ToString)
-                            Requestes.Remove(Request)
-                            If Requestes.Count = 0 Then GoTo Err
+                    AlbumArtResponse = Await UploadAlbumArt(Temp)
+                    If AlbumArtResponse.status Then
+                        If AlbumArtResponse.response.imageUrl IsNot Nothing Then
+                            Item.tsr.album_art_url = AlbumArtResponse.response.imageUrl
                         End If
                     End If
+                Catch ex As Exception
+                End Try
 
+                File.Delete(Temp)
+
+                Select Case Item.tsr.response_code
+                    Case TrackSampleResponse.ResponseCode.UPLOAD_REQUESTED
+                        Item.session = Await GetUploadSession(Item, Request.IndexOf(Item), Request.Count)
+                        If Item.session.status = False Then
+                            Dim Failed As AddTracksResponse.Field.FailedField = New AddTracksResponse.Field.FailedField
+                            Failed.path = Item.filepath
+                            Failed.description = "GetUploadSession Failed. - No Data"
+                            Response.response.failed.Add(Failed)
+                            Request.Remove(Item) : If Request.Count = 0 Then Return Response
+                        End If
+
+                    Case TrackSampleResponse.ResponseCode.ALREADY_EXISTS
+                        If Overwrite = False Then
+                            Dim Failed As AddTracksResponse.Field.FailedField = New AddTracksResponse.Field.FailedField
+                            Failed.path = Item.filepath
+                            Failed.description = "UploadSample Failed. - " & Item.tsr.response_code.ToString & " / Overwrite = False"
+                            Response.response.failed.Add(Failed)
+                            Request.Remove(Item) : If Request.Count = 0 Then Return Response
+                        Else
+                            Item.retry = True
+                        End If
+
+                    Case Else
+                        Dim Failed As AddTracksResponse.Field.FailedField = New AddTracksResponse.Field.FailedField
+                        Failed.path = Item.filepath
+                        Failed.description = "UploadSample Failed. - " & Item.tsr.response_code.ToString
+                        Response.response.failed.Add(Failed)
+                        Request.Remove(Item) : If Request.Count = 0 Then Return Response
+                End Select
+            Next
+
+            Response.response.responses = Await UploadTrack(Request.Where(Function(Func) Func.retry = False))
+            Request.RemoveAll(Function(Func) Func.retry = False)
+
+            For Each FailedItem As UploadTrackResponse In Response.response.responses.Where(Function(Func) Func.status = False)
+                Dim Failed As AddTracksResponse.Field.FailedField = New AddTracksResponse.Field.FailedField
+                Failed.path = FailedItem.filePath
+                Failed.description = Join(FailedItem.description.ToArray, "/")
+                Response.response.failed.Add(Failed)
+            Next
+
+
+            If Request.Count > 0 Then
+                Dim DeleteResponse As DeleteTrackResponse = Await DeleteTracks(Request.Select(Function(Func) Func.tsr.server_track_id), True)
+                If DeleteResponse.status = False Then
+                    For Each Item In Request
+                        Dim Failed As AddTracksResponse.Field.FailedField = New AddTracksResponse.Field.FailedField
+                        Failed.path = Item.filepath
+                        Failed.description = "Overwrite Failed."
+                        Response.response.failed.Add(Failed)
+                    Next
                 Else
-                    FailureList.Add(Request.filepath & " | " & Request.tsr.response_code.ToString)
-                    Requestes.Remove(Request)
-                    If Requestes.Count = 0 Then GoTo Err
+                    Dim SecondaryResponse As AddTracksResponse = Await AddTracks(Request.Select(Function(Func) Func.filepath))
+                    If SecondaryResponse.status = False Then
+                        For Each Item In Request
+                            Dim Failed As AddTracksResponse.Field.FailedField = New AddTracksResponse.Field.FailedField
+                            Failed.path = Item.filepath
+                            Failed.description = Join(SecondaryResponse.description.ToArray, "/")
+                            Response.response.failed.Add(Failed)
+                        Next
+                    Else
+                        Response.response.failed.AddRange(SecondaryResponse.response.failed)
+                        Response.response.responses.AddRange(SecondaryResponse.response.responses)
+                    End If
                 End If
-
-            Next
-
-            For Each Retry As String In RetryList
-                Requestes.RemoveAll(Function(Func) Func.filepath = Retry)
-                If Requestes.Count = 0 Then GoTo Err
-            Next
-
-            For i As Integer = 0 To Requestes.Count - 1
-                Requestes(i).session = Await GetUploadSession(Requestes(i), i, Requestes.Count)
-                If Requestes(i).session.status = False Then
-                    Response = New AddTrackResponse
-                    Response.status = False
-                    Response.description = UploadResponse.description
-                    FailureList.Add(Requestes(i).filepath & " | " & Join(UploadResponse.description.ToArray, "/"))
-                    Requestes.Remove(Requestes(i))
-                    If Requestes.Count = 0 Then GoTo Err
-                End If
-            Next
-
-            Response.response.responses = UploadTrack(Requestes).Result.ToList
-            Response.description.AddRange(FailureList)
-
-            If RetryList.Count > 0 Then GoTo Retry
-
-            Await UpdateUploadState(UpdateUploadStateRequest.UploadState.STOPPED)
-
-            Return Response
-
-Err:
-            If RetryList.Count > 0 Then GoTo Retry
-            Response.description.AddRange(FailureList)
-
-            Await UpdateUploadState(UpdateUploadStateRequest.UploadState.STOPPED)
-
-            Return Response
-
-Retry:
-            Dim SecondaryResponse As AddTrackResponse = Await AddTracks(RetryList)
-
-            If SecondaryResponse.status = False Then
-                For Each Retry As String In RetryList
-                    Response.description.Add(Retry & " | " & Join(SecondaryResponse.description.ToArray, "/"))
-                Next
-            Else
-                Response.description.AddRange(SecondaryResponse.description)
-
-                If Response.response.responses Is Nothing Then Response.response.responses = New List(Of UploadTrackResponse)
-                Response.response.responses.AddRange(SecondaryResponse.response.responses)
             End If
 
             Await UpdateUploadState(UpdateUploadStateRequest.UploadState.STOPPED)
@@ -223,7 +228,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of AddPlaylistResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -247,7 +252,7 @@ Retry:
             Try
                 Response.response.Build(JsonConvert.DeserializeObject(Await Http.SendRequest(HttpMethod.Post, Url, Content, GoogleHttp.ResultType.STRING_TYPE)))
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -277,7 +282,7 @@ Retry:
                     Next
                 End If
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
 
@@ -294,7 +299,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of DeletePlaylistResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -319,7 +324,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of DeletePlaylistContentsResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -368,7 +373,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of EditTrackResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -387,7 +392,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of EditPlaylistResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -440,7 +445,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of FetchQuerySuggestionsResponse.Field)(HttpMethod.Post, Url, ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -464,7 +469,7 @@ Retry:
                     Match = Match.NextMatch
                 Loop
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -480,7 +485,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetAllPlaylistsResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -497,7 +502,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetPlaylistContentsResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -514,7 +519,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetPlaylistContentsResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -563,7 +568,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetSuggestedMetadataResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -576,7 +581,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetStreamingUrlResponse.Field)(HttpMethod.Get, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -589,7 +594,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetDownloadUrlResponse.Field)(HttpMethod.Get, Url, ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -611,7 +616,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetAllSettingsResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -627,7 +632,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetDismissedItemsResponse.Field)(HttpMethod.Post, Url, ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -643,7 +648,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetStatusResponse.Field)(HttpMethod.Post, Url, ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -659,7 +664,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetOfferResponse.Field)(HttpMethod.Post, Url, ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -675,7 +680,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of GetListenNowItemsResponse.Field)(HttpMethod.Post, Url, ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -695,7 +700,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of RestoreDeletedTracksResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -735,7 +740,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of SearchTracksResponse.Field)(HttpMethod.Post, Url, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
                 Debug.WriteLine(ex.Message)
             End Try
 
@@ -758,7 +763,7 @@ Retry:
             Dim Request As UploadAlbumArtRequest = New UploadAlbumArtRequest
             Request.sessionId = Auth.SessionId
 
-            Dim Content As MultipartContent = New MultipartContent("------WebKitFormBoundary")
+            Dim Content As MultipartFormDataContent = New MultipartFormDataContent("------WebKitFormBoundary")
             Dim PartContent As HttpContent
             PartContent = New StreamContent(New FileStream(FilePath, FileMode.Open, FileAccess.ReadWrite))
             PartContent.Headers.Add("Content-Disposition", "form-data; name=""albumArt""; filename=""" & Path.GetFileName(FilePath) & """")
@@ -774,7 +779,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of UploadAlbumArtResponse.Field)(HttpMethod.Post, Url, Content, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             Return Response
@@ -790,7 +795,7 @@ Retry:
                 Return Destination & "?u=0&xt=" & Auth.XTcookie & "&json=" & JsonString
             End If
         End Function
-        Private Sub ReportError(ByRef Response As ResponseField)
+        Private Sub ReportError(ByRef Response As ResponseField, Optional ex As Exception = Nothing)
             Response.status = False
 
             If Http.LastCode <> HttpStatusCode.OK Then
@@ -804,10 +809,12 @@ Retry:
                     Next
                     Response.responseHeader = Dict
                 End If
+            ElseIf Http.LastCode = 0 Then
+                Response.description.Add("GoogleHttp Error")
+                Response.description.Add(ex.Message)
             Else
                 Response.description.Add("Json Deserialize Error")
             End If
-
         End Sub
         Private Sub SwitchToWebHttp()
             If Type = HttpType.WEB Then Exit Sub
@@ -862,7 +869,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of UploadResponse)(HttpMethod.Post, Url, Content, ResultType.PROTOBUF_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             If Response.status = False Then Return Response
@@ -896,7 +903,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of UploadResponse)(HttpMethod.Post, Url, Content, ResultType.PROTOBUF_DESERIALIZE_TYPE) '// 오류 발생 //
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             If Response.status = False Then Return Response
@@ -918,7 +925,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of UploadResponse)(HttpMethod.Post, Url, Content, ResultType.PROTOBUF_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             If Response.status = False Then Return Response
@@ -941,7 +948,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of UploadResponse)(HttpMethod.Post, Url, Content, ResultType.PROTOBUF_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             If Response.status = False Then Return Response
@@ -979,7 +986,19 @@ Retry:
                 Metadata.last_modified_timestamp = (New FileInfo(FilePath).LastWriteTimeUtc - New Date(1970, 1, 1, 0, 0, 0, 0).ToLocalTime).TotalMilliseconds
             End With
 
+            Tag.Dispose()
+
             Return Metadata
+        End Function
+        Private Function GetAlbumArtData(FilePath As String) As Byte()
+            Dim Tag As TagLib.File = TagLib.File.Create(FilePath)
+            If Tag.Tag.Pictures.Length = 0 Then Return Nothing
+
+            Dim Result() As Byte = Tag.Tag.Pictures(0).Data.Data
+
+            Tag.Dispose()
+
+            Return Result
         End Function
         Private Function GetClientId(FilePath As String) As String
             Dim Buffer() As Byte
@@ -993,7 +1012,8 @@ Retry:
             Dim Reader As Mp3FileReader = New Mp3FileReader(FilePath)
             Dim Frame As Mp3Frame
             Dim Buffer() As Byte
-            Using Stream As FileStream = New FileStream("C:\Sample.tmp", FileMode.Create, FileAccess.ReadWrite) '// 메모리 아끼기 (임시 경로 사용중) //
+            Dim Temp As String = Path.GetTempFileName
+            Using Stream As FileStream = New FileStream(Temp, FileMode.Create, FileAccess.ReadWrite)
                 Do
                     Frame = Reader.ReadNextFrame
                     If Frame IsNot Nothing Then
@@ -1011,7 +1031,8 @@ Retry:
                 Stream.Read(Buffer, 0, Stream.Length)
             End Using
 
-            File.Delete("C:\Sample.tmp")
+            File.Delete(Temp)
+            Reader.Dispose()
 
             Return Buffer
         End Function
@@ -1027,7 +1048,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of UploadResponse)(HttpMethod.Post, Url, Content, ResultType.PROTOBUF_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             If Response.status = False Then Return Response
@@ -1060,7 +1081,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of UploadResponse)(HttpMethod.Post, Url, Content, ResultType.PROTOBUF_DESERIALIZE_TYPE, "Samples")
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             If Response.status = False Then Return Response
@@ -1089,6 +1110,9 @@ Retry:
             lst.Add(New UploadSessionRequest.CreateSessionRequestField.InlinedRequestField("UploaderId", Auth.DeviceId))
             lst.Add(New UploadSessionRequest.CreateSessionRequestField.InlinedRequestField("TrackBitRate", Info.metadata.original_bit_rate.ToString))
             lst.Add(New UploadSessionRequest.CreateSessionRequestField.InlinedRequestField("ClientId", Info.metadata.client_id))
+            If Info.tsr.album_art_url IsNot String.Empty Then
+                lst.Add(New UploadSessionRequest.CreateSessionRequestField.InlinedRequestField("AlbumArtUrl", Info.tsr.album_art_url)) '// 테스트
+            End If
             Request.createSessionRequest.fields = lst
 
             Dim Content As StringContent = New StringContent(JsonConvert.SerializeObject(Request))
@@ -1098,7 +1122,7 @@ Retry:
             Try
                 Response.response = Await Http.SendRequest(Of UploadSessionResponse.Field)(HttpMethod.Post, Url, Content, ResultType.JSON_DESERIALIZE_TYPE)
             Catch ex As Exception
-                ReportError(Response)
+                ReportError(Response, ex)
             End Try
 
             If Response.status = False Then Return Response
@@ -1119,17 +1143,16 @@ Retry:
 
             For Each Request As UploadTrackRequest In Info
                 Url = Request.session.response.sessionStatus.externalFieldTransfers(0).putInfo.URL
-                Content = New StreamContent(New FileStream(Request.filepath, FileMode.Open, FileAccess.ReadWrite))
-
-                Tasks.Add(Http.SendRequest(Of UploadTrackResponse.Field)(HttpMethod.Put, Url, Content, ResultType.JSON_DESERIALIZE_TYPE, Path.GetFileName(Request.filepath))) '// 멀티 업로드 //
+                Content = New StreamContent(New FileStream(Request.filepath, FileMode.Open, FileAccess.Read))
+                Tasks.Add(Http.SendRequest(Of UploadTrackResponse.Field)(HttpMethod.Put, Url, Content, ResultType.JSON_DESERIALIZE_TYPE, Path.GetFileName(Request.filepath)))
             Next
 
-            For Each Task As Task(Of UploadTrackResponse.Field) In Tasks '// 끝나는대로 결과 회수 //
+            For Each Task As Task(Of UploadTrackResponse.Field) In Tasks
                 Response = New UploadTrackResponse
                 Try
                     Response.response = Await Task
                 Catch ex As Exception
-                    ReportError(Response)
+                    ReportError(Response, ex)
                 End Try
 
                 If Response.response.additionalInfo IsNot Nothing Then
@@ -1139,6 +1162,7 @@ Retry:
                     End If
                 End If
 
+                Response.filePath = Info(Tasks.IndexOf(Task)).filepath
                 Responses.Add(Response)
             Next
 

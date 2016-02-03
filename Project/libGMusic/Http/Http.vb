@@ -70,32 +70,37 @@ Namespace Http
         End Sub
         '==================================================
         Public Async Function SendRequest(Method As HttpMethod, Url As String, Content As HttpContent, ResultType As ResultType, Optional Info As String = Nothing) As Task(Of Object)
-            Request = New HttpRequestMessage(Method, Url)
-            Request.Content = Content
-            SetRequestHeaders(Request)
+            _LastCode = 0
+            Try
+                Request = New HttpRequestMessage(Method, Url)
+                Request.Content = Content
+                SetRequestHeaders(Request)
 
-            If Info IsNot Nothing Then _Info.Add(Info, Content.Headers.ContentLength)
-            Response = Await Client.SendAsync(Request)
-            If Info IsNot Nothing Then _Info.Remove(Info)
+                If Info IsNot Nothing Then _Info.Add(Info, Content.Headers.ContentLength)
+                Response = Await Client.SendAsync(Request)
+                If Info IsNot Nothing Then _Info.Remove(Info)
 
-            _LastCode = Response.StatusCode
-            _LastResponseHeader = Response.Headers
+                _LastCode = Response.StatusCode
+                _LastResponseHeader = Response.Headers
 
-            If Response.IsSuccessStatusCode = False Then
-                Return Nothing
-            End If
-
-            Select Case ResultType
-                Case ResultType.STREAM_TYPE
-                    Return Await Response.Content.ReadAsStreamAsync
-
-                Case ResultType.STRING_TYPE
-                    Return Await Response.Content.ReadAsStringAsync
-
-                Case Else
+                If Response.IsSuccessStatusCode = False Then
                     Return Nothing
+                End If
 
-            End Select
+                Select Case ResultType
+                    Case ResultType.STREAM_TYPE
+                        Return Await Response.Content.ReadAsStreamAsync
+
+                    Case ResultType.STRING_TYPE
+                        Return Await Response.Content.ReadAsStringAsync
+
+                    Case Else
+                        Return Nothing
+
+                End Select
+            Catch ex As Exception
+                Return Nothing
+            End Try
         End Function
         Public Async Function SendRequest(Method As HttpMethod, Url As String, ResultType As ResultType, Optional Info As String = Nothing) As Task(Of Object)
             Return Await SendRequest(Method, Url, DirectCast(Nothing, HttpContent), ResultType, Info)
@@ -141,8 +146,15 @@ Namespace Http
                 Request.Headers.Add(Item.Key, Item.Value)
             Next
         End Sub
+        Private Function NullString(str As String) As String
+            If String.IsNullOrWhiteSpace(str) Then Return "NULL"
+
+            Return str
+        End Function
         '==================================================
         Private Sub ReceiveEvent(sender As Object, e As HttpProgressEventArgs)
+            If _ReceiveEvent Is Nothing Then Exit Sub
+
             Dim Info As String
             Try
                 Info = _Info.Single(Function(Func) Func.Value = e.TotalBytes).Key
@@ -153,6 +165,8 @@ Namespace Http
             _ReceiveEvent.Invoke(e.BytesTransferred, e.TotalBytes, e.ProgressPercentage, Info)
         End Sub
         Private Sub SendEvent(sender As Object, e As HttpProgressEventArgs)
+            If _SendEvent Is Nothing Then Exit Sub
+
             Dim Info As String
             Try
                 Info = _Info.Single(Function(Func) Func.Value = e.TotalBytes).Key

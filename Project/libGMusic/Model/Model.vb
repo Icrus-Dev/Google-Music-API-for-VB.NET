@@ -86,15 +86,23 @@ Namespace Model
             Return 1000 * (Time.ToUniversalTime.Subtract(New DateTime(1970, 01, 01)).TotalMilliseconds)
         End Function
     End Class
-    Public Class AddTrackRequest
+    Public Class AddTracksRequest
         Inherits UploadTrackRequest
+
+        Public retry As Boolean
     End Class
-    Public Class AddTrackResponse
+    Public Class AddTracksResponse
         Inherits ResponseField
 
         Public response As Field
         Public Class Field
-            Public responses As List(Of UploadTrackResponse)
+            Public responses As List(Of UploadTrackResponse) = New List(Of UploadTrackResponse)
+            Public failed As List(Of FailedField) = New List(Of FailedField)
+
+            Public Class FailedField
+                Public path As String
+                Public description As String
+            End Class
         End Class
     End Class
     Public Class AddPlaylistRequest
@@ -840,6 +848,7 @@ Namespace Model
     Public Class UploadTrackResponse
         Inherits ResponseField
 
+        Public filePath As String
         Public response As Field
         Public Class Field
             Public sessionStatus As SessionStatusField
