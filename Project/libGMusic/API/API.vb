@@ -232,33 +232,20 @@ Retry:
             Return Await AddPlaylistContents({TrackId}, PlaylistId)
         End Function
         Public Async Function AddPlaylistContents(TrackId As IEnumerable(Of String), PlaylistId As String) As Task(Of AddPlaylistContentsResponse)
-            '## 확인하지 않음 ##
             SwitchToWebHttp()
 
-            Dim Request As _AddPlaylistContentsRequest = New _AddPlaylistContentsRequest
+            Dim Request As AddPlaylistContentsRequest = New AddPlaylistContentsRequest
             Request.sessionId = Auth.SessionId
             Request.songIds = TrackId
             Request.listId = PlaylistId
 
-            Dim Request2 As AddPlaylistContentsRequest = New AddPlaylistContentsRequest
-            Request2.sessionId = Auth.SessionId
-            Request2.id = PlaylistId
-            For Each Id As String In TrackId
-                Request2.AddTrackField(Id)
-            Next
-
-            Dim Url As String = BaseUrl & GetParameter("addtrackstoplaylist", Request2)
-            Debug.WriteLine(Url)
-            'Dim Url As String = BaseUrl & GetParameter("addtrackstoplaylist", Nothing) & "&alt=json&format=jsarray"
-            'Dim Content As StringContent = New StringContent(Request.Build)
+            Dim Url As String = BaseUrl & GetParameter("addtrackstoplaylist", Nothing) & "&format=jsarray"
+            Dim Content As StringContent = New StringContent(Request.Build)
 
             Dim Response As AddPlaylistContentsResponse = New AddPlaylistContentsResponse
             Response.response = New AddPlaylistContentsResponse.Field
-
-            Dim ResponseString As String
             Try
-                ResponseString = Await Http.SendRequest(HttpMethod.Post, Url, GoogleHttp.ResultType.STRING_TYPE)
-                Response.response.Build(JsonConvert.DeserializeObject(ResponseString))
+                Response.response.Build(JsonConvert.DeserializeObject(Await Http.SendRequest(HttpMethod.Post, Url, Content, GoogleHttp.ResultType.STRING_TYPE)))
             Catch ex As Exception
                 ReportError(Response)
             End Try
