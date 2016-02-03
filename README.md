@@ -57,8 +57,5 @@
  - UploadAlbumArt
  
 ### TODO
-- AddTracks 에서 음악 파일의 AlbumArt를 업로드하고 Url를 추가하는 작업을 진행할 것.
 - I'm Feeling Lucky! 를 이용한 Random Track List를 가져올 함수 작성할 것.
 - https://play.google.com/music/services/recordplaying 의 역할을 알아낼 것.
-- AddTracks 함수의 코드를 최적화 할 것
-- 전반적인 예외 처리 방안을 강구할 것. (GoogleHttp 의 SendRequest에서 예외가 발생할 시 ReportError가 동작하지 않는 문제가 있음) 
