@@ -2,8 +2,6 @@
 - 이 프로젝트는 Unofficial Google Music API를 VB.NET 으로 코딩한 프로젝트입니다.
 - 이 프로젝트는 Simon-Weber 님의 gmusicapi: an unofficial API for Google Play Music [https://github.com/simon-weber/gmusicapi] 를 참조하였습니다.
 
-================================================================================================
-
 ### Feature
 
 - 이 프로젝트는 Google OAuth 2.0 을 위해 Google에서 제공한 Nuget Package를 사용하고 있습니다.
@@ -56,6 +54,7 @@
  - **SearchPlaylists** : 입력한 값을 포함하는 Name, Description을 가진 Playlist를 불러옵니다.
  - **UploadAlbumArt** : Album Art를 업로드합니다.
  
+================================================================================================
 ### TODO
 - I'm Feeling Lucky! 를 이용한 Random Track List를 가져올 함수 작성할 것.
 - https://play.google.com/music/services/recordplaying 의 역할을 알아낼 것.
