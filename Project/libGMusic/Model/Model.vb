@@ -131,24 +131,6 @@ Namespace Model
         End Class
     End Class
     Public Class AddPlaylistContentsRequest
-        '## 확인하지 않음 ##
-        '[["rqasqdgw14a4",1],["71228933-de0e-461b-b907-a8a10f62e15d",[["6269b26d-6a42-3105-aeb2-36c82b01f4ad",2]]]]
-        Public sessionId As String
-        Public id As String '// id listId
-        Public songRefs As List(Of TrackField) = New List(Of TrackField) '// track tracks song songs
-        Public Class TrackField
-            Public songId As String '// id trackId songId
-            Public requestType As Integer = 2
-        End Class
-
-        Sub AddTrackField(id As String)
-            Dim TrackField As TrackField = New TrackField
-            TrackField.songId = id
-
-            songRefs.Add(TrackField)
-        End Sub
-    End Class
-    Public Class _AddPlaylistContentsRequest
         Public sessionId As String
         Public listId As String
         Public songIds() As String
