@@ -4,10 +4,6 @@ Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Runtime.Serialization.Formatters.Binary
 
-Imports Google.Apis.Util
-Imports Google.Apis.Auth.OAuth2
-Imports Google.Apis.Auth.OAuth2.Flows
-Imports Google.Apis.Auth.OAuth2.Responses
 Imports Newtonsoft.Json
 
 Imports libGMusic.Http
@@ -77,21 +73,21 @@ Namespace Auth
         End Function
         '==================================================
         Private Async Function OAuthLogin(OAuthFilePath As String, OAuthJsonString As String) As Task(Of Boolean)
-            OAuth = New OAuth(Info.GoogleClientID, Info.GoogleClientSecret, Info.GoogleScope, Info.GoogleEmail, Info.GooglePasswd, Info.UserName)
+            OAuth = New OAuth(Info.GoogleClientID, Info.GoogleClientSecret, Info.GoogleEmail, Info.GooglePasswd)
 
             Try
                 If OAuthJsonString IsNot String.Empty Then
-                    Await OAuth.LoadCredentialFromJsonString(OAuthJsonString)
-                    Await OAuth.RefreshCredential()
-                    OAuth.SaveCredential(OAuthFilePath)
+                    OAuth.LoadTokenFromJsonString(OAuthJsonString)
+                    Await OAuth.RefreshToken()
+                    OAuth.SaveToken(OAuthFilePath)
                 Else
                     If File.Exists(OAuthFilePath) Then
-                        Await OAuth.LoadCredential(OAuthFilePath)
-                        Await OAuth.RefreshCredential
-                        OAuth.SaveCredential(OAuthFilePath)
+                        OAuth.LoadToken(OAuthFilePath)
+                        Await OAuth.RefreshToken
+                        OAuth.SaveToken(OAuthFilePath)
                     Else
-                        Await OAuth.CreateCredential()
-                        OAuth.SaveCredential(OAuthFilePath)
+                        Await OAuth.CreateToken()
+                        OAuth.SaveToken(OAuthFilePath)
                     End If
                 End If
 
@@ -112,98 +108,84 @@ Namespace Auth
     End Class
 
     Public Class OAuth
-        Private Structure OAuthTokenStructure
-            Dim TokenResponse As TokenResponse
-            Dim UserId As String
-        End Structure
+        <Serializable>
+        Public Class AccessTokenData
+            Public access_token As String
+            Public refresh_token As String
+            Public expires_in As Integer
+            Public token_type As String
+            Public issued As Long
+            Public scope As String
+        End Class
         '==================================================
         Public ReadOnly Property AccessToken As String
             Get
-                Return _UserCredential.Token.AccessToken
+                Return Token.access_token
             End Get
         End Property
         Public ReadOnly Property TokenType As String
             Get
-                Return _UserCredential.Token.TokenType
-            End Get
-        End Property
-        Public ReadOnly Property AuthCode As String
-            Get
-                Return _AuthCode
+                Return Token.token_type
             End Get
         End Property
         '==================================================
-        Private _UserCredential As UserCredential
+        Private Token As AccessTokenData
         Private Http As GoogleHttp
 
         Private _ClientId As String
         Private _ClientSecret As String
         Private _AuthorizationUrl As String = "https://accounts.google.com/o/oauth2/auth"
         Private _TokenUrl As String = "https://accounts.google.com/o/oauth2/token"
-        Private _Scope As String
+        Private _Scope As String = "https://www.googleapis.com/auth/musicmanager"
         Private _Email As String
         Private _Passwd As String
-        Private _UserName As String
-        Private _AuthCode As String
         '==================================================
-        Sub New(ClientId As String, ClientSecret As String, Scope As String, Email As String, Passwd As String, Optional UserName As String = "User")
+        Sub New(ClientId As String, ClientSecret As String, Email As String, Passwd As String)
             _ClientId = ClientId
             _ClientSecret = ClientSecret
-            _Scope = Scope
             _Email = Email
             _Passwd = Passwd
-            _UserName = UserName
 
             Http = New GoogleHttp
         End Sub
         '==================================================
-        Public Async Function CreateCredential(Optional UserName As String = Nothing, Optional TokenResponse As TokenResponse = Nothing) As Task
-            Dim Secrets As ClientSecrets = New ClientSecrets
-            Secrets.ClientId = _ClientId
-            Secrets.ClientSecret = _ClientSecret
-
-            Dim Initializer As AuthorizationCodeFlow.Initializer = New AuthorizationCodeFlow.Initializer(_AuthorizationUrl, _TokenUrl)
-            Initializer.ClientSecrets = Secrets
-            Initializer.Scopes = {_Scope}
-
-            Dim Flow As AuthorizationCodeFlow = New AuthorizationCodeFlow(Initializer)
-
-            If UserName IsNot Nothing Then
-                _UserCredential = New UserCredential(Flow, UserName, TokenResponse)
+        Public Async Function CreateToken(Optional AccessTokenData As AccessTokenData = Nothing) As Task
+            If AccessTokenData Is Nothing Then
+                Token = Await GetAccessToken(Await GetAuthCode())
             Else
-                _UserCredential = New UserCredential(Flow, _UserName, TokenResponse)
-            End If
-
-            If TokenResponse Is Nothing Then
-                _UserCredential.Token = Await _UserCredential.Flow.ExchangeCodeForTokenAsync(_UserName, Await GetAuthCode(), "urn:ietf:wg:oauth:2.0:oob", Threading.CancellationToken.None)
-                _UserCredential.Token.Scope = _Scope
+                Token = AccessTokenData
             End If
         End Function
-        Public Sub SaveCredential(FilePath As String)
-            Dim Struct As OAuthTokenStructure = New OAuthTokenStructure
-            Struct.TokenResponse = _UserCredential.Token
-            Struct.UserId = _UserCredential.UserId
-
-            File.WriteAllText(FilePath, JsonConvert.SerializeObject(Struct))
+        Public Sub SaveToken(FilePath As String)
+            Dim Formatter As BinaryFormatter = New BinaryFormatter
+            Using Stream As FileStream = New FileStream(FilePath, FileMode.Create, FileAccess.ReadWrite)
+                Formatter.Serialize(Stream, Token)
+            End Using
         End Sub
-        Public Async Function LoadCredential(FilePath As String) As Task
-            Dim Struct As OAuthTokenStructure = JsonConvert.DeserializeObject(Of OAuthTokenStructure)(File.ReadAllText(FilePath))
-            Await CreateCredential(Struct.UserId, Struct.TokenResponse)
-            _UserCredential.Token.Scope = Struct.TokenResponse.Scope
-        End Function
-        Public Async Function LoadCredentialFromJsonString(JsonString As String) As Task
-            Dim Struct As OAuthTokenStructure = JsonConvert.DeserializeObject(Of OAuthTokenStructure)(JsonString)
-            Await CreateCredential(Struct.UserId, Struct.TokenResponse)
-            _UserCredential.Token.Scope = Struct.TokenResponse.Scope
-        End Function
-        Public Async Function RefreshCredential(Optional Force As Boolean = False) As Task
+        Public Sub LoadToken(FilePath As String)
+            Dim Formatter As BinaryFormatter = New BinaryFormatter
+            Using stream As FileStream = New FileStream(FilePath, FileMode.Open, FileAccess.ReadWrite)
+                Token = Formatter.Deserialize(stream)
+            End Using
+        End Sub
+        Public Sub LoadTokenFromJsonString(JsonString As String)
+            Token = JsonConvert.DeserializeObject(Of AccessTokenData)(JsonString)
+        End Sub
+        Public Async Function RefreshToken(Optional Force As Boolean = False) As Task
             If Force OrElse IsExpired() Then
-                _UserCredential.Token = Await _UserCredential.Flow.RefreshTokenAsync(_UserCredential.UserId, _UserCredential.Token.RefreshToken, Threading.CancellationToken.None)
-                _UserCredential.Token.Scope = _Scope
+                Token = Await GetRefreshedToken()
             End If
         End Function
         Public Function IsExpired() As Boolean
-            Return _UserCredential.Token.IsExpired(SystemClock.Default)
+            Dim Issued As Date = Date.FromBinary(Token.issued)
+            Issued.AddSeconds(Token.expires_in)
+
+            If Issued < Now Then
+                Return True
+            Else
+                Return False
+            End If
+            'Return _UserCredential.Token.IsExpired(SystemClock.Default)
         End Function
         '==================================================
         Private Async Function CheckSession(Url As String, Keyword As String) As Task(Of Boolean)
@@ -275,7 +257,7 @@ Namespace Auth
         Private Async Function GetAuthCode() As Task(Of String)
             Http = New GoogleHttp(New CookieContainer)
 
-            Dim Url As String = "https://accounts.google.com/o/oauth2/programmatic_auth?client_id=" & _ClientId & "&scope=" & _Scope '//https://www.googleapis.com/auth/musicmanager"
+            Dim Url As String = "https://accounts.google.com/o/oauth2/programmatic_auth?client_id=" & _ClientId & "&scope=" & _Scope '& "&access_type=offline" '//https://www.googleapis.com/auth/musicmanager"
             If Await CheckSession(Url, "Moved Temporarily") = False Then
                 If Await GetSession() = False Then Return Nothing
                 If Await CheckSession(Url, "Moved Temporarily") = False Then Return False
@@ -293,7 +275,26 @@ Namespace Auth
 
             Return Response
         End Function
-        '==================================================
+        Private Async Function GetAccessToken(AuthCode As String) As Task(Of AccessTokenData)
+            Dim Url As String = _TokenUrl
+            Dim Content As FormUrlEncodedContent = New FormUrlEncodedContent(New Dictionary(Of String, String) From {{"grant_type", "authorization_code"}, {"code", AuthCode}, {"client_id", _ClientId}, {"client_secret", _ClientSecret}})
+
+            Dim Response As AccessTokenData = Await Http.SendRequest(Of AccessTokenData)(HttpMethod.Post, Url, Content, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
+            Response.issued = Now.ToBinary
+
+            Return Response
+        End Function
+        Private Async Function GetRefreshedToken() As Task(Of AccessTokenData)
+            Dim Url As String = _TokenUrl
+            Dim Bak As String = Token.refresh_token
+            Dim Content As FormUrlEncodedContent = New FormUrlEncodedContent(New Dictionary(Of String, String) From {{"grant_type", "refresh_token"}, {"refresh_token", Token.refresh_token}, {"client_id", _ClientId}, {"client_secret", _ClientSecret}})
+
+            Dim Response As AccessTokenData = Await Http.SendRequest(Of AccessTokenData)(HttpMethod.Post, Url, Content, GoogleHttp.ResultType.JSON_DESERIALIZE_TYPE)
+            Response.issued = Now.ToBinary
+            Response.refresh_token = Bak
+
+            Return Response
+        End Function
     End Class
     Public Class WebAuth
         Public ReadOnly Property XTcookie As String
