@@ -71,7 +71,7 @@ Namespace Auth
         End Sub
         '==================================================
         Public Async Function Login(CookieFilePath As String, OAuthFilePath As String, Optional OAuthJsonString As String = Nothing) As Task(Of Boolean)
-            If Await OAuthLogin(OAuthFilePath, File.ReadAllText(OAuthFilePath)) = False Then Return False
+            If Await OAuthLogin(OAuthFilePath, String.Empty) = False Then Return False
             If Await WebAuthLogin(CookieFilePath) = False Then Return False
             Return True
         End Function
@@ -80,7 +80,7 @@ Namespace Auth
             OAuth = New OAuth(Info.GoogleClientID, Info.GoogleClientSecret, Info.GoogleScope, Info.GoogleEmail, Info.GooglePasswd, Info.UserName)
 
             Try
-                If OAuthJsonString IsNot Nothing Then
+                If OAuthJsonString IsNot String.Empty Then
                     Await OAuth.LoadCredentialFromJsonString(OAuthJsonString)
                     Await OAuth.RefreshCredential()
                     OAuth.SaveCredential(OAuthFilePath)
@@ -222,16 +222,7 @@ Namespace Auth
             If Input.ContainsKey("Email") Then Input.Item("Email") = _Email
             If Input.ContainsKey("Passwd") Then Input.Item("Passwd") = _Passwd
 
-            Dim Data As String = String.Empty
-            For Each Pair As KeyValuePair(Of String, String) In Input
-                If Data = String.Empty Then
-                    Data = Pair.Key & "=" & Pair.Value
-                Else
-                    Data &= "&" & Pair.Key & "=" & Pair.Value
-                End If
-            Next
-
-            Dim Content As StringContent = New StringContent(Data)
+            Dim Content As FormUrlEncodedContent = New FormUrlEncodedContent(Input)
 
             Dim Response As String = Await Http.SendRequest(HttpMethod.Post, "https://accounts.google.com/ServiceLoginAuth", Content, GoogleHttp.ResultType.STRING_TYPE)
             If Response Is Nothing Then Return False
@@ -284,7 +275,7 @@ Namespace Auth
         Private Async Function GetAuthCode() As Task(Of String)
             Http = New GoogleHttp(New CookieContainer)
 
-            Dim Url As String = "https://accounts.google.com/o/oauth2/programmatic_auth?client_id=" & _ClientId & "&scope=https://www.googleapis.com/auth/musicmanager"
+            Dim Url As String = "https://accounts.google.com/o/oauth2/programmatic_auth?client_id=" & _ClientId & "&scope=" & _Scope '//https://www.googleapis.com/auth/musicmanager"
             If Await CheckSession(Url, "Moved Temporarily") = False Then
                 If Await GetSession() = False Then Return Nothing
                 If Await CheckSession(Url, "Moved Temporarily") = False Then Return False
@@ -390,16 +381,7 @@ Namespace Auth
             If Input.ContainsKey("Email") Then Input.Item("Email") = _Email
             If Input.ContainsKey("Passwd") Then Input.Item("Passwd") = _Passwd
 
-            Dim Data As String = String.Empty
-            For Each Pair As KeyValuePair(Of String, String) In Input
-                If Data = String.Empty Then
-                    Data = Pair.Key & "=" & Pair.Value
-                Else
-                    Data &= "&" & Pair.Key & "=" & Pair.Value
-                End If
-            Next
-
-            Dim Content As StringContent = New StringContent(Data)
+            Dim Content As FormUrlEncodedContent = New FormUrlEncodedContent(Input)
 
             Dim Response As String = Await Http.SendRequest(HttpMethod.Post, "https://accounts.google.com/ServiceLoginAuth", Content, GoogleHttp.ResultType.STRING_TYPE)
             If Response Is Nothing Then Return False
