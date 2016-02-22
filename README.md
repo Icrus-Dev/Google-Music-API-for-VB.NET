@@ -24,7 +24,7 @@
  - **DeletePlaylistContent** : Playlist에 포함된 1개의 Track을 Playlist에서 제거합니다.
  - **DeletePlaylistContents** : Playlist에 포함된 다수의 Track을 Playlist에서 제거합니다.
  - **EditTrack** : 1개의 Track의 정보를 수정합니다. (Title, Album, Artist, Composer, Year, Genre, etc...)
- - **EditTracks** : 다수의 Trakc의 정보를 동일한 내용으로 수정합니다. (Album, Artist 등을 한번에 처리하는데 유용.)
+ - **EditTracks** : 다수의 Track의 정보를 수정합니다.
  - **EditPlaylist** : Playlist의 Name, Description을 수정합니다.
  - **EditLabSettings** : Google Music Web Player의 Lab 설정을 변경합니다.
  - **FindTracks** : 입력한 값과 동일한 Title을 가진 Track을 찾습니다.
