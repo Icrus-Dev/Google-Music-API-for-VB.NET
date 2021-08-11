@@ -1,6 +1,7 @@
-# Google Music API for VB.NET
+# [DEPRECATED] Google Music API for VB.NET
 - 이 프로젝트는 Unofficial Google Music API를 VB.NET 으로 코딩한 프로젝트입니다.
 - 이 프로젝트는 Simon-Weber 님의 gmusicapi: an unofficial API for Google Play Music [https://github.com/simon-weber/gmusicapi] 를 참조하였습니다.
+- 이 프로젝트는 Google music 서비스 종료로 더 이상 유효하지 않습니다.
 
 ### Feature
 
